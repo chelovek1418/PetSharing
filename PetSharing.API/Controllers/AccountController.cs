@@ -93,19 +93,10 @@ namespace PetSharing.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginContract model)
         {
-            if (ModelState.IsValid)
-            {
-                var result = await _userService.Authenticate(new UserDto { Email = model.Email, Password = model.Password }, model.RememberMe);
-                if (result.Succeeded)
-                {
-                    return RedirectToAction("Index", "Home");
-                }
-                else
-                {
-                    ModelState.AddModelError("", "Неправильный логин и (или) пароль");
-                }
-            }
-            return Ok(model);
+            var result = await _userService.Authenticate(new UserDto { Email = model.Email, Password = model.Password }, model.RememberMe);
+            if (string.IsNullOrEmpty(result))
+                return BadRequest();
+            return Ok();
         }
 
         [HttpPost]
