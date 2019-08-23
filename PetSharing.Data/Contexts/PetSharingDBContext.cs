@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using PetSharing.Data.Entities;
+using System;
 using System.Collections;
 using System.Linq;
 using System.Threading;
@@ -52,7 +54,7 @@ namespace PetSharing.Data.Contexts
         {
             foreach (var entry in ChangeTracker.Entries())
             {
-                if (entry.State == EntityState.Deleted)
+                if (entry.State == EntityState.Deleted && entry.Entity.GetType()!=typeof(IdentityUserRole<string>))
                 {
                     entry.State = EntityState.Modified;
                     entry.CurrentValues["IsDeleted"] = true;

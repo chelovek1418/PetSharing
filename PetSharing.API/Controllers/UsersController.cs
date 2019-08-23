@@ -17,7 +17,7 @@ namespace PetSharingAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize(Roles = "admin")]
+    [Authorize(Roles = "admin")]
     public class UsersController : ControllerBase
     {
         IUserService _userManager;
@@ -27,7 +27,7 @@ namespace PetSharingAPI.Controllers
             _userManager = userManager;
         }
 
-        [Route("[action]")]
+        [Route("index")]
         public async Task<IActionResult> Index(int page = 1)
         {
             /*var users = */
@@ -38,124 +38,73 @@ namespace PetSharingAPI.Controllers
             return Ok((await _userManager.GetAll((page - 1) * 20)).Select(x => x.ToContract()).ToList());
         }
 
+        [Route("roles")]
         public IActionResult Roles() => Ok(_userManager.GetRoles().Select(x => x.ToContract()).ToList());
-
+        [Route("usercreate")]
         public IActionResult CreateUser() => Ok(_userManager.GetRoles().Select(x => x.ToContract()).ToList());
 
+        [Route("usercreate")]
         [HttpPost]
         public async Task<IActionResult> CreateUser(CreateUserContract model)
         {
-            if (ModelState.IsValid)
-            {
-                await _userManager.CreateByAdmin(new UserDto { Email = model.Email, UserName = model.UserName, Password=model.Password, Role = model.Role });
-            }
+            await _userManager.CreateByAdmin(new UserDto { Email = model.Email, UserName = model.UserName, Password = model.Password, Role = model.Role });
             return Ok(model);
         }
 
         [HttpDelete]
+        [Route("userdelete")]
         public async Task<ActionResult> DeleteUser(string id)
         {
             if (string.IsNullOrEmpty(id))
-                return NotFound();
+                return BadRequest();
             await _userManager.DeleteByAdmin(id);
             return RedirectToAction("Index");
         }
 
-        public IActionResult CreateRole() => Ok();
-
-        [HttpPost]
-        public async Task<IActionResult> CreateRole(string name)
+        [Route("getinrole")]
+        public async Task<IActionResult> GetUsersInRole(string name)
         {
-            if (!string.IsNullOrEmpty(name))
-            {
-                var result = await _userManager.CreateRole(name);
-                if (result.Succeeded)
-                {
-                    return RedirectToAction("Roles");
-                }
-                else
-                {
-                    foreach (var error in result.Errors)
-                    {
-                        ModelState.AddModelError(string.Empty, error.Description);
-                    }
-                }
-            }
-            return Ok(name);
+            return Ok((await _userManager.GetUsersInRole(name)).Select(x => x.ToContract()).ToList());
         }
 
-        [HttpDelete]
-        public async Task<IActionResult> DeleteRole(string id)
+        [Route("useredit")]
+        public async Task<IActionResult> Edit(string Id)
         {
-            if (string.IsNullOrEmpty(id))
-                return NotFound();
-            var result = await _userManager.DeleteRole(id);
-            if (!result.Succeeded)
+            if (string.IsNullOrEmpty(Id))
+                return BadRequest("Id canot be empty");
+            var user = await _userManager.FindById(Id);
+            if (user == null)
+                return BadRequest("User not found");
+            var role = await _userManager.GetRole(user);
+            var allRoles = _userManager.GetRoles().Select(x => x.ToContract()).ToList();
+            return Ok(new ChangeRoleContract
             {
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError(string.Empty, error.Description);
-                }
-            }
-            return RedirectToAction("Roles");
+                Email = user.Email,
+                UserName = user.UserName,
+                FullName = user.FullName,
+                Phone = user.Phone,
+                PicUrl = user.PicUrl,
+                Role = role,
+                AllRoles = allRoles,
+                Id = user.Id
+            });
         }
 
         [HttpPut]
-        public async Task<IActionResult> EditRole(string id, RoleContract role)
-        {
-            if (string.IsNullOrEmpty(id))
-                return NotFound();
-            if (!(await _userManager.EditRole(new RoleDto { Id = id, Name = role.Name })).Succeeded)
-            {
-                Ok(role);
-            }
-            return RedirectToAction("Roles");
-        }
-
-        public async Task<IActionResult> Edit(string userId)
-        {
-            if (string.IsNullOrEmpty(userId))
-                return NotFound();
-            var user = await _userManager.FindById(userId);
-            if (user != null)
-            {
-                var role = await _userManager.GetRole(user);
-                var allRoles = _userManager.GetRoles().Select(x => x.ToContract()).ToList();
-                ChangeRoleContract model = new ChangeRoleContract
-                {
-                    Email = user.Email,
-                    UserName = user.UserName,
-                    FullName = user.FullName,
-                    Phone = user.Phone,
-                    PicUrl = user.PicUrl,
-                    Role = role,
-                    AllRoles = allRoles,
-                    Id = user.Id
-                };
-                return Ok(model);
-            }
-            return NotFound();
-        }
-
-        [HttpPut]
+        [Route("useredit")]
         public async Task<IActionResult> Edit(ChangeRoleContract model)
         {
-            if (ModelState.IsValid)
-            {
-                var user = await _userManager.FindById(model.Id);
-                if (user != null)
-                {
-                    user.Role = model.Role;
-                    user.Email = model.Email;
-                    user.UserName = model.UserName;
-                    user.FullName = model.FullName;
-                    user.Phone = model.Phone;
-                    user.PicUrl = model.PicUrl;
-                    await _userManager.Update(user);
-                    return RedirectToAction("Index");
-                }
-            }
-            return Ok(model);
+            var user = await _userManager.FindById(model.Id);
+            if (user == null)
+                return BadRequest();
+            user.Role = model.Role;
+            user.Email = model.Email;
+            user.UserName = model.UserName;
+            user.FullName = model.FullName;
+            user.Phone = model.Phone;
+            user.PicUrl = model.PicUrl;
+            await _userManager.Update(user);
+            return RedirectToAction("Index");
         }
     }
 }

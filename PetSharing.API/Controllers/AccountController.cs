@@ -40,8 +40,8 @@ namespace PetSharing.API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterContract model)
         {
-            await _userService.CreateRole("user");
-            await _userService.CreateRole("admin");
+            //await _userService.CreateRole("user");
+            //await _userService.CreateRole("admin");
             var userDto = new UserDto
             {
                 Email = model.Email,
