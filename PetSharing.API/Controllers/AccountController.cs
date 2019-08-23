@@ -40,33 +40,26 @@ namespace PetSharing.API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterContract model)
         {
-            if (ModelState.IsValid)
+            await _userService.CreateRole("user");
+            await _userService.CreateRole("admin");
+            var userDto = new UserDto
             {
-                var userDto = new UserDto
-                {
-                    Email = model.Email,
-                    Password = model.Password,
-                    UserName = model.UserName,
-                    Role = "user"
-                };
-                var id = await _userService.Create(userDto);
-                if (id != string.Empty)
-                {
-                    var token = await _userService.GenerateToken(id);
-                    if (id != string.Empty)
-                    {
-                        var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = id, code = token }, protocol: HttpContext.Request.Scheme);                    
-                        EmailService emailService = new EmailService();
-                        await emailService.SendEmailAsync(model.Email, "Confirm your account",
-                            $"Подтвердите регистрацию на {"PetSharing"}, перейдя по ссылке: <a href='{callbackUrl}'>link</a>");
-                        return Ok();
-                    }
-                    ModelState.AddModelError("Token", "Токен пуст");
-                }
-                else
-                    ModelState.AddModelError("Id", "Пользователь не найден");
-            }
-            return Ok(model);
+                Email = model.Email,
+                Password = model.Password,
+                UserName = model.UserName,
+                Role = "user"
+            };
+            var id = await _userService.Create(userDto);
+            if (string.IsNullOrEmpty(id))
+                return BadRequest();
+            var token = await _userService.GenerateToken(id);
+            if (string.IsNullOrEmpty(token))
+                return BadRequest();
+            var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = id, code = token }, protocol: HttpContext.Request.Scheme);
+            EmailService emailService = new EmailService();
+            await emailService.SendEmailAsync(model.Email, "Confirm your account",
+                $"Подтвердите регистрацию на \"PetSharing\", перейдя по ссылке: <a href='{callbackUrl}'>link</a>");
+            return Ok();
         }
 
         [HttpGet("confirmemail")]
@@ -74,9 +67,7 @@ namespace PetSharing.API.Controllers
         public async Task<IActionResult> ConfirmEmail(string userId, string code)
         {
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(code))
-            {
                 return BadRequest("Error");
-            }
             var result = await _userService.ConfirnEmail(userId, code);
             if (result.Succeeded)
                 return Ok();
@@ -84,23 +75,22 @@ namespace PetSharing.API.Controllers
                 return BadRequest("Error");
         }
 
-        [HttpGet("login")]
-        public IActionResult Login()
-        {
-            return Ok();
-        }
+        //[HttpGet("login")]
+        //public IActionResult Login()
+        //{
+        //    return Ok();
+        //}
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginContract model)
+        public async Task<IActionResult> Login([FromBody]LoginContract model)
         {
             var result = await _userService.Authenticate(new UserDto { Email = model.Email, Password = model.Password }, model.RememberMe);
             if (string.IsNullOrEmpty(result))
                 return BadRequest();
-            return Ok();
+            return Ok(new { token = result });
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public IActionResult LogOff()
         {
             _userService.LogOff();
@@ -116,7 +106,6 @@ namespace PetSharing.API.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordContract model)
         {
             if (ModelState.IsValid)
@@ -143,7 +132,6 @@ namespace PetSharing.API.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ResetPassword(ResetPasswordContract model)
         {
             if (ModelState.IsValid)

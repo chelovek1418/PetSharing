@@ -222,13 +222,17 @@ namespace PetSharing.Domain.Services
             var user = await Db.UserManager.FindByEmailAsync(model.Email);
             if (user == null || !await Db.UserManager.CheckPasswordAsync(user, model.Password))
                 throw new ValidationException("Пользоветель не найден", "Email");
+            model.Id = user.Id;
+            var role = await GetRole(model);
+            var _opt = new IdentityOptions();
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new Claim("UserID", user.Id.ToString())
+                    new Claim("UserID", user.Id.ToString()),
+                    new Claim(_opt.ClaimsIdentity.RoleClaimType, role)
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(5),
+                Expires = DateTime.UtcNow.AddDays(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes("1234567891011121")), SecurityAlgorithms.HmacSha256Signature)
             };
             var tokenHandler = new JwtSecurityTokenHandler();
