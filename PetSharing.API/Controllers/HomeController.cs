@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace PetSharing.API.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class HomeController : ControllerBase
@@ -25,28 +26,29 @@ namespace PetSharing.API.Controllers
             _postService = postService;
             _userManager = userManager;
         }
-        
+
         public async Task<IActionResult> Index(int page = 1)
         {
-            var user = await _userManager.GetCurrentUserAsync(User);
-            if (user != null)
+            var id = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value;
+            //var user = await _userManager.GetCurrentUserAsync(User);
+            var user = await _userManager.FindById(id);
+            if (user == null)
+                return BadRequest("User not found");
+            return Ok(new HomeContract
             {
-                return Ok(new HomeContract
-                {
-                    //User = new UserFullInfoContract
-                    //{
-                        //Id = user.Id,
-                        Email=user.Email,
-                        Phone=user.Phone,
-                        FullName = user.FullName,
-                        PicUrl = user.PicUrl,
-                        UserName = user.UserName
-                    //},
-                    //Pets = (await _userManager.GetPetProfiles(user.Id)).Select(x => new PetProfileShortInfoContract { Id = x.Id, Name = x.Name, PicUrl = x.Img }).ToList(),
-                    //Posts = (await _postService.GetBySub((page-1)*20, user.Id)).Select(x=>x.ToContract()).ToList()
-                });                
-            }
-            return NotFound();
+                //User = new UserFullInfoContract
+                //{
+                //Id = user.Id,
+                Email = user.Email,
+                Phone = user.Phone,
+                FullName = user.FullName,
+                PicUrl = user.PicUrl,
+                UserName = user.UserName
+                //},
+                //Pets = (await _userManager.GetPetProfiles(user.Id)).Select(x => new PetProfileShortInfoContract { Id = x.Id, Name = x.Name, PicUrl = x.Img }).ToList(),
+                //Posts = (await _postService.GetBySub((page-1)*20, user.Id)).Select(x=>x.ToContract()).ToList()
+            });
+
         }
     }
 }
