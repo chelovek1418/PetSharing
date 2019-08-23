@@ -22,6 +22,7 @@ namespace PetSharing.Domain.Services
         Task<IEnumerable<ChatDto>> GetChats(ClaimsPrincipal claims);
         IEnumerable<UserDto> FindUsers(string param);
         IEnumerable<RoleDto> GetRoles();
+        Task<IEnumerable<UserDto>> GetUsersInRole(string name);
         Task<IdentityResult> ChangePsw(UserDto dto, string newPsw);
         Task<string> Update(UserDto dto);
         Task<IEnumerable<UserDto>> GetAll(int skip);
@@ -37,9 +38,6 @@ namespace PetSharing.Domain.Services
         Task<UserDto> FindByEmail(string email);
         Task<IdentityResult> Delete(UserDto dto);
         Task<IdentityResult> DeleteByAdmin(string id);
-        Task<IdentityResult> CreateRole(string name);
-        Task<IdentityResult> DeleteRole(string id);
-        Task<IdentityResult> EditRole(RoleDto role);
         Task<IEnumerable<PetProfileDto>> GetPetProfiles(string id);
         Task<string> GetRole(UserDto dto);
         Task<UserDto> GetCurrentUserAsync(ClaimsPrincipal claims);
@@ -55,16 +53,21 @@ namespace PetSharing.Domain.Services
             Db = uow;
         }
 
+        public async Task<IEnumerable<UserDto>> GetUsersInRole(string name)
+        {
+            return (await Db.UserManager.GetUsersInRoleAsync(name)).Select(x => x.ToDto());
+        }
+
         public async Task<IEnumerable<ChatDto>> GetChats(ClaimsPrincipal claims)
         {
             var id = (await Db.UserManager.GetUserAsync(claims)).Id;
-            var messages = (await Db.UserManager.Users.Include(x => x.Messages).FirstOrDefaultAsync(d => d.Id == id)).Messages.OrderByDescending(m=>m.Date);
+            var messages = (await Db.UserManager.Users.Include(x => x.Messages).FirstOrDefaultAsync(d => d.Id == id)).Messages.OrderByDescending(m => m.Date);
             List<ChatDto> Chats = new List<ChatDto>();
             foreach (var mes in messages)
             {
                 if (!Chats.Any(x => x.Id == mes.ReceiverId))
                 {
-                    Chats.Add(new ChatDto { Id = mes.ReceiverId, Name =mes.User.UserName, Pic=mes.User.PicUrl, Date=mes.Date, LastMessage=mes.Text });
+                    Chats.Add(new ChatDto { Id = mes.ReceiverId, Name = mes.User.UserName, Pic = mes.User.PicUrl, Date = mes.Date, LastMessage = mes.Text });
                 }
             }
             return Chats;
@@ -92,21 +95,23 @@ namespace PetSharing.Domain.Services
 
         public async Task<string> Update(UserDto dto)
         {
-            User user = await Db.UserManager.FindByIdAsync(dto.Id);
-            if (user != null)
-            {
-                var pers = dto.ToEntity();
-                var role = await Db.UserManager.GetRolesAsync(pers);
-                if (!(await Db.UserManager.RemoveFromRolesAsync(user, role)).Succeeded)
-                    throw new ValidationException("Не удалить роль", "Role");
-                if (!(await Db.UserManager.AddToRoleAsync(pers, dto.Role)).Succeeded)
-                    throw new ValidationException("Не добавить роль", "Role");
-                if (!(await Db.UserManager.UpdateAsync(pers)).Succeeded)
-                    throw new ValidationException("Не удалось обновить", "");
-                Db.Save();
-                return user.Id;
-            }
-            throw new ValidationException("Пользователь не найден", "Id");
+            var user = await Db.UserManager.FindByIdAsync(dto.Id);
+            if (user == null)
+                throw new ValidationException("Пользователь не найден", "Id");
+            user.Email = dto.Email;
+            user.FullName = dto.FullName;
+            user.PhoneNumber = dto.Phone;
+            user.PicUrl = dto.PicUrl;
+            user.UserName = dto.UserName;
+            var role = await Db.UserManager.GetRolesAsync(user);
+            if (!(await Db.UserManager.RemoveFromRolesAsync(user, role)).Succeeded)
+                throw new ValidationException("Не удалось удалить роль", "Role");
+            if (!(await Db.UserManager.AddToRoleAsync(user, dto.Role)).Succeeded)
+                throw new ValidationException("Не удалось добавить роль", "Role");
+            if (!(await Db.UserManager.UpdateAsync(user)).Succeeded)
+                throw new ValidationException("Не удалось обновить", "");
+            Db.Save();
+            return user.Id;
         }
 
         public async Task<UserDto> FindById(string id)
@@ -124,20 +129,22 @@ namespace PetSharing.Domain.Services
                 {
                     var delDate = await Db.UserManager.Users
                         .Include(x => x.Comments)
-                        .Include(s=>s.Subscriptions)
+                        .Include(s => s.Subscriptions)
                         .Include(y => y.Messages)
                         .Include(z => z.PetProfiles)
                         .ThenInclude(pp => pp.Posts)
                         .ThenInclude(p => p.Comments)
                         .FirstOrDefaultAsync(u => u.Id == user.Id);
-                    delDate.Comments.ForEach(x=> Db.Comments.DeleteAsync(x.Id));
+                    delDate.Comments.ForEach(x => Db.Comments.DeleteAsync(x.Id));
                     delDate.Subscriptions.RemoveRange(0, delDate.Subscriptions.Count); /*ForEach(x => delDate.Subscriptions.Remove(x))*/
                     delDate.Messages.ForEach(x => Db.Messages.Delete(x.Id));
-                    delDate.PetProfiles.ForEach(x => 
-                    { x.Posts.ForEach(y => 
-                    { y.Comments.ForEach(c => Db.Comments.DeleteAsync(c.Id));
-                        Db.Posts.DeleteAsync(y.Id);
-                    });
+                    delDate.PetProfiles.ForEach(x =>
+                    {
+                        x.Posts.ForEach(y =>
+                      {
+                          y.Comments.ForEach(c => Db.Comments.DeleteAsync(c.Id));
+                          Db.Posts.DeleteAsync(y.Id);
+                      });
                         Db.PetProfiles.DeleteAsync(x.Id);
                     });
                     var res = await Db.UserManager.DeleteAsync(user);
@@ -152,13 +159,11 @@ namespace PetSharing.Domain.Services
         public async Task<IdentityResult> DeleteByAdmin(string id)
         {
             var user = await Db.UserManager.FindByIdAsync(id);
-            if (user != null)
-            {
-                var res = await Db.UserManager.DeleteAsync(user);
-                Db.Save();
-                return res;
-            }
-            throw new ValidationException("Пользователь не найден", "Id");
+            if (user == null)
+                throw new ValidationException("Пользователь не найден", "Id");
+            var res = await Db.UserManager.DeleteAsync(user);
+            Db.Save();
+            return res;
         }
 
         public async Task<IdentityResult> ConfirnEmail(string id, string code)
@@ -174,7 +179,7 @@ namespace PetSharing.Domain.Services
             User user = await Db.UserManager.FindByEmailAsync(userDto.Email);
             if (user != null)
                 throw new ValidationException("Пользователь с таким электронным адрессом уже существует", "Email");
-            user = new User { Email = userDto.Email, UserName = userDto.UserName };
+            user = new User { Email = userDto.Email, UserName = userDto.UserName, EmailConfirmed = true };
             var result = await Db.UserManager.CreateAsync(user, userDto.Password);
             if (!result.Succeeded)
                 throw new ValidationException("Не удалось создать пользователя", "");
@@ -194,7 +199,7 @@ namespace PetSharing.Domain.Services
                 throw new ValidationException("Не удалось создать пользователя", "");
             if (!(await Db.UserManager.AddToRoleAsync(user, userDto.Role)).Succeeded)
                 throw new ValidationException("Не удалось добавить роль для пользователя", "");
-            await Db.SignInManager.SignInAsync(user, false);
+            //await Db.SignInManager.SignInAsync(user, false);
             Db.Save();
             return user.Id;
         }
@@ -295,38 +300,6 @@ namespace PetSharing.Domain.Services
             return Db.RoleManager.Roles.Select(x => x.ToDto());
         }
 
-        public async Task<IdentityResult> CreateRole(string name)
-        {
-            var res = await Db.RoleManager.CreateAsync(new IdentityRole(name));
-            Db.Save();
-            return res;
-        }
-
-        public async Task<IdentityResult> DeleteRole(string id)
-        {
-            var role = await Db.RoleManager.FindByIdAsync(id);
-            if (role != null)
-            {
-                var res = await Db.RoleManager.DeleteAsync(role);
-                Db.Save();
-                return res;
-            }
-            throw new ValidationException("Роль не найдена", "Id");
-        }
-
-        public async Task<IdentityResult> EditRole(RoleDto role)
-        {
-            var result = await Db.RoleManager.FindByIdAsync(role.ToEntity().Id);
-            if (result != null)
-            {
-                result.Name = role.Name;
-                var res = await Db.RoleManager.UpdateAsync(result);
-                Db.Save();
-                return res;
-            }
-            throw new ValidationException("Роль не найдена", "Id");
-        }
-
         public async Task<IEnumerable<PetProfileDto>> GetPetProfiles(string id)
         {
             return (await Db.UserManager.Users.Include(x => x.PetProfiles).FirstOrDefaultAsync(d => d.Id == id)).PetProfiles.Select(g => g.ToDto());
@@ -334,16 +307,16 @@ namespace PetSharing.Domain.Services
 
         public async Task Subscribe(string userId, int petId)
         {
-            var user =await Db.UserManager.FindByIdAsync(userId);
+            var user = await Db.UserManager.FindByIdAsync(userId);
             if (user == null)
                 throw new ValidationException("Пользователь не найден", "Id");
-            user.Subscriptions.Add(new Subscription { PetId=petId, UserId=user.Id });
-            Db.Save(); 
+            user.Subscriptions.Add(new Subscription { PetId = petId, UserId = user.Id });
+            Db.Save();
         }
 
         public async Task UnSubscribe(string userId, int petId)
         {
-            var user =await Db.UserManager.Users.Include(s => s.Subscriptions).FirstOrDefaultAsync(x => x.Id == userId);
+            var user = await Db.UserManager.Users.Include(s => s.Subscriptions).FirstOrDefaultAsync(x => x.Id == userId);
             var pet = await Db.PetProfiles.GetAsync(petId);
             if (user != null && pet != null)
             {
