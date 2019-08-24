@@ -89,8 +89,9 @@ namespace PetSharing.Domain.Services
 
         public async Task<UserDto> GetCurrentUserAsync(ClaimsPrincipal claims)
         {
-            var user = await Db.UserManager.GetUserAsync(claims);
-            return user.ToDto();
+            return (await Db.UserManager.FindByIdAsync(claims.Claims.FirstOrDefault(x => x.Type == "UserID").Value)).ToDto();
+            //var user = await Db.UserManager.GetUserAsync(claims);
+            //return user.ToDto();
         }
 
         public async Task<string> Update(UserDto dto)
@@ -122,38 +123,33 @@ namespace PetSharing.Domain.Services
         public async Task<IdentityResult> Delete(UserDto dto)
         {
             var user = await Db.UserManager.FindByEmailAsync(dto.Email);
-            if (user != null)
-            {
-                var result = Db.UserManager.PasswordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
-                if (result == PasswordVerificationResult.Success)
-                {
-                    var delDate = await Db.UserManager.Users
-                        .Include(x => x.Comments)
-                        .Include(s => s.Subscriptions)
-                        .Include(y => y.Messages)
-                        .Include(z => z.PetProfiles)
-                        .ThenInclude(pp => pp.Posts)
-                        .ThenInclude(p => p.Comments)
-                        .FirstOrDefaultAsync(u => u.Id == user.Id);
-                    delDate.Comments.ForEach(x => Db.Comments.DeleteAsync(x.Id));
-                    delDate.Subscriptions.RemoveRange(0, delDate.Subscriptions.Count); /*ForEach(x => delDate.Subscriptions.Remove(x))*/
-                    delDate.Messages.ForEach(x => Db.Messages.Delete(x.Id));
-                    delDate.PetProfiles.ForEach(x =>
-                    {
-                        x.Posts.ForEach(y =>
-                      {
-                          y.Comments.ForEach(c => Db.Comments.DeleteAsync(c.Id));
-                          Db.Posts.DeleteAsync(y.Id);
-                      });
-                        Db.PetProfiles.DeleteAsync(x.Id);
-                    });
-                    var res = await Db.UserManager.DeleteAsync(user);
-                    Db.Save();
-                    return res;
-                }
+            if (user == null)
+                throw new ValidationException("Пользователь не найден", "Id");
+            if (Db.UserManager.PasswordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password) == PasswordVerificationResult.Failed)
                 throw new ValidationException("Неверный пароль", "Password");
-            }
-            throw new ValidationException("Пользователь не найден", "Id");
+            var delDate = await Db.UserManager.Users
+                .Include(x => x.Comments)
+                .Include(s => s.Subscriptions)
+                .Include(y => y.Messages)
+                .Include(z => z.PetProfiles)
+                .ThenInclude(pp => pp.Posts)
+                .ThenInclude(p => p.Comments)
+                .FirstOrDefaultAsync(u => u.Id == user.Id);
+            delDate.Comments.ForEach(x => Db.Comments.DeleteAsync(x.Id));
+            delDate.Subscriptions.RemoveRange(0, delDate.Subscriptions.Count); /*ForEach(x => delDate.Subscriptions.Remove(x))*/
+            delDate.Messages.ForEach(x => Db.Messages.Delete(x.Id));
+            delDate.PetProfiles.ForEach(x =>
+            {
+                x.Posts.ForEach(y =>
+              {
+                  y.Comments.ForEach(c => Db.Comments.DeleteAsync(c.Id));
+                  Db.Posts.DeleteAsync(y.Id);
+              });
+                Db.PetProfiles.DeleteAsync(x.Id);
+            });
+            var res = await Db.UserManager.DeleteAsync(user);
+            Db.Save();
+            return res;
         }
 
         public async Task<IdentityResult> DeleteByAdmin(string id)
@@ -216,9 +212,7 @@ namespace PetSharing.Domain.Services
         {
             var user = await Db.UserManager.FindByEmailAsync(param);
             if (user == null || !user.EmailConfirmed)
-            {
                 throw new ValidationException("Невозможно отослать код на почту, так как email не был подтвержден", "Email");
-            }
             return await Db.UserManager.GeneratePasswordResetTokenAsync(user);
         }
 
@@ -253,14 +247,10 @@ namespace PetSharing.Domain.Services
         {
             var user = await Db.UserManager.FindByEmailAsync(dto.Email);
             if (user == null)
-            {
                 throw new ValidationException("Юзер не существует", "Email");
-            }
             var result = await Db.UserManager.ResetPasswordAsync(user, code, dto.Password);
             if (!result.Succeeded)
-            {
                 throw new ValidationException("Не удалось установить новый пароль", "Password");
-            }
             Db.Save();
             return result;
         }
@@ -273,16 +263,11 @@ namespace PetSharing.Domain.Services
         public async Task<IdentityResult> ChangePsw(UserDto dto, string newPsw)
         {
             var user = await Db.UserManager.FindByIdAsync(dto.Id);
-            if (user != null)
-            {
-                var res = await Db.UserManager.ChangePasswordAsync(user, dto.Password, newPsw);
-                Db.Save();
-                return res;
-            }
-            else
-            {
+            if (user == null)
                 throw new ValidationException("Пользователь не найден", "Id");
-            }
+            var res = await Db.UserManager.ChangePasswordAsync(user, dto.Password, newPsw);
+            Db.Save();
+            return res;
         }
 
         public async void LogOff()
@@ -318,12 +303,11 @@ namespace PetSharing.Domain.Services
         {
             var user = await Db.UserManager.Users.Include(s => s.Subscriptions).FirstOrDefaultAsync(x => x.Id == userId);
             var pet = await Db.PetProfiles.GetAsync(petId);
-            if (user != null && pet != null)
-            {
-                var subscription = user.Subscriptions.FirstOrDefault(sc => sc.PetId == pet.Id);
-                user.Subscriptions.Remove(subscription);
-                Db.Save();
-            }
+            if (user == null || pet == null)
+                throw new ValidationException("Пользователь или профиль не найдены", "Id");
+            var subscription = user.Subscriptions.FirstOrDefault(sc => sc.PetId == pet.Id);
+            user.Subscriptions.Remove(subscription);
+            Db.Save();
         }
 
         public void Dispose()

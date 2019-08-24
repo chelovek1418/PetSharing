@@ -11,7 +11,7 @@ namespace PetSharing.Contracts.PetProfilesContract
         public string Img { get; set; }
         public string Type { get; set; }
         public string Breed { get; set; }
-        public Genders Gender { get; set; }
+        public string Gender { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public string Location { get; set; }
         public double AvgLikeCount { get; set; }

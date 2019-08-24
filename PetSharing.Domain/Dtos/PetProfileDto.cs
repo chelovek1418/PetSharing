@@ -12,7 +12,7 @@ namespace PetSharing.Domain.Models
         public string Img { get; set; }
         public string Type { get; set; }
         public string Breed { get; set; }
-        public Genders Gender { get; set; }
+        public string Gender { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public string Location { get; set; }
         public double AvgLikeCount { get; set; }
@@ -26,11 +26,5 @@ namespace PetSharing.Domain.Models
             Posts = new List<PostDto>();
         }
 
-    }
-    public enum Genders
-    {
-        Male,
-        Female,
-        Hermaphrodite
     }
 }

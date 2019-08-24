@@ -25,18 +25,6 @@ namespace PetSharing.API.Controllers
             _userService = userService;
         }
 
-        //[HttpGet]
-        //public IActionResult Index()
-        //{
-        //    return Ok();
-        //}
-
-        //[HttpGet("register")]
-        //public IActionResult Register()
-        //{
-        //    return Ok();
-        //}
-
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterContract model)
         {
@@ -75,12 +63,6 @@ namespace PetSharing.API.Controllers
                 return BadRequest("Error");
         }
 
-        //[HttpGet("login")]
-        //public IActionResult Login()
-        //{
-        //    return Ok();
-        //}
-
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody]LoginContract model)
         {
@@ -97,50 +79,28 @@ namespace PetSharing.API.Controllers
             return RedirectToAction("Login", "Account");
         }
 
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult ForgotPassword()
-        {
-            return Ok();
-        }
-
         [HttpPost]
         [AllowAnonymous]
+        [Route("forgotpassword")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordContract model)
         {
-            if (ModelState.IsValid)
-            {
-                var token = await _userService.GeneratePswToken(model.Email);
-                var user = _userService.FindByEmail(model.Email);
-                if (token == string.Empty || user.Result.Id == string.Empty)
-                    return BadRequest("Пользоветель не найден");
-                var callbackUrl = Url.Action("ResetPassword", "Account", new { id = user.Result.Id, code = token }, protocol: HttpContext.Request.Scheme);
-                EmailService emailService = new EmailService();
-                await emailService.SendEmailAsync(model.Email, "Reset Password",
-                    $"Для сброса пароля пройдите по ссылке: <a href='{callbackUrl}'>link</a>");
-                return Ok();
-            }
-            return Ok(model);
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult ResetPassword(string code = null)
-        {
-            return Ok(code);
+            var token = await _userService.GeneratePswToken(model.Email);
+            var user = _userService.FindByEmail(model.Email);
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(user.Result.Id))
+                return BadRequest("Пользоветель не найден");
+            var callbackUrl = Url.Action("ResetPassword", "Account", new { id = user.Result.Id, code = token }, protocol: HttpContext.Request.Scheme);
+            await new EmailService().SendEmailAsync(model.Email, "Reset Password",
+                $"Для сброса пароля пройдите по ссылке: <a href='{callbackUrl}'>link</a>");
+            return Ok(new { token });
         }
 
         [HttpPost]
         [AllowAnonymous]
+        [Route("resetpassword")]
         public async Task<IActionResult> ResetPassword(ResetPasswordContract model)
         {
-            if (ModelState.IsValid)
-            {
-                await _userService.ResetPsw(new UserDto { Email = model.Email, Password = model.Password }, model.Code);
-                return RedirectToAction("Index", "Home");
-            }
-            ModelState.AddModelError("", "Неправильный логин и (или) пароль");
-            return Ok(model);
+            await _userService.ResetPsw(new UserDto { Email = model.Email, Password = model.Password }, model.Code);
+            return RedirectToAction("Index", "Home");
         }
     }
 }

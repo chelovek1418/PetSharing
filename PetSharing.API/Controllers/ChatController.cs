@@ -63,9 +63,11 @@ namespace PetSharing.API.Controllers
             return RedirectToAction();
         }
 
-        public async Task<IActionResult> DeleteMessage(int id)
+        public async Task<IActionResult> DeleteMessage(int? id)
         {
-            await _messageService.Delete(id);
+            if (id == null)
+                return BadRequest();
+            await _messageService.Delete((int)id);
             return RedirectToAction();
         }
     }
