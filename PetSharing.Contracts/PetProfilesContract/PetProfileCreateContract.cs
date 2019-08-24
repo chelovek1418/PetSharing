@@ -14,7 +14,7 @@ namespace PetSharing.Contracts.PetProfilesContract
         [Required]
         public string Type { get; set; }
         public string Breed { get; set; }
-        public Genders? Gender { get; set; }
+        public string Gender { get; set; }
         [DataType(DataType.Date)]
         public DateTime? DateOfBirth { get; set; }
         public string Location { get; set; }

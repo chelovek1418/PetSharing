@@ -18,6 +18,7 @@ namespace PetSharing.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PetProfilesController : ControllerBase
     {
         private IService<PetProfileDto> _petService;
@@ -29,19 +30,25 @@ namespace PetSharing.API.Controllers
             _userService = userService;
         }
 
-        public async Task<IActionResult> Subscribe(int id)
+        [Route("subscribe")]
+        public async Task<IActionResult> Subscribe(int? id)
         {
-            await _userService.Subscribe((await _userService.GetCurrentUserAsync(User)).Id, id);
-            return RedirectToAction();
+            if (id == null)
+                return BadRequest();
+            await _userService.Subscribe(User.Claims.FirstOrDefault(x => x.Type == "UserID").Value, (int)id);
+            return Ok();
         }
 
-        public async Task<IActionResult> UnSubscribe(int id)
+        [Route("unsubscribe")]
+        public async Task<IActionResult> UnSubscribe(int? id)
         {
-            await _userService.UnSubscribe((await _userService.GetCurrentUserAsync(User)).Id, id);
-            return RedirectToAction();
+            if (id==null)
+                return BadRequest();
+            await _userService.UnSubscribe(User.Claims.FirstOrDefault(x => x.Type == "UserID").Value, (int)id);
+            return Ok();
         }
 
-        [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> Index(int page = 1) => Ok((await _petService.GetAll((page - 1) * 20))
             .Select(x => new PetProfileMidInfoContract
             {
@@ -51,7 +58,7 @@ namespace PetSharing.API.Controllers
                 AvgLikeCount = x.AvgLikeCount,
                 Breed = x.Breed,
                 DateOfBirth = x.DateOfBirth,
-                Gender = (Contracts.Genders)x.Gender,
+                Gender = x.Gender,
                 IsReadyForSex = x.IsReadyForSex,
                 IsSale = x.IsSale,
                 IsShare = x.IsShare,
@@ -59,13 +66,12 @@ namespace PetSharing.API.Controllers
                 Type = x.Type
             }).ToList());
 
-        [HttpGet]
-        [Route("[action]/{id}")]
+        [Route("getall")]
         [Authorize]
         public async Task<IActionResult> GetUserProfiles(string id)
         {
             if (string.IsNullOrEmpty(id))
-                return NotFound();
+                return BadRequest();
             return Ok((await _userService.GetPetProfiles(id))
             .Select(x => new PetProfileMidInfoContract
             {
@@ -75,7 +81,7 @@ namespace PetSharing.API.Controllers
                 AvgLikeCount = x.AvgLikeCount,
                 Breed = x.Breed,
                 DateOfBirth = x.DateOfBirth,
-                Gender = (Contracts.Genders)x.Gender,
+                Gender = x.Gender,
                 IsReadyForSex = x.IsReadyForSex,
                 IsSale = x.IsSale,
                 IsShare = x.IsShare,
@@ -84,119 +90,105 @@ namespace PetSharing.API.Controllers
             }).ToList());
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        [Route("get")]
+        public async Task<IActionResult> GetById(int? id)
         {
-            try
-            {
-                var petProfile = await _petService.GetById(id);
-                var petProfileView = petProfile.ToContract();
-                var owner = _userService.FindById(petProfile.OwnerId);
-                petProfileView.Owner = new UserShortInfoContract
-                {
-                    Id = owner.Result.Id,
-                    UserName = owner.Result.UserName,
-                    PicUrl = owner.Result.PicUrl
-                };
-                petProfileView.Posts = petProfile.Posts.Select(x => new PostShortContract
-                {
-                    Id = x.Id,
-                    Text = x.Text,
-                    Img = x.Img,
-                    Date = x.Date,
-                    LikeCount = x.LikeCount
-                }).ToList();
-                return Ok(petProfileView);
-            }
-            catch
-            {
+            if (id==null)
                 return BadRequest();
-            }
+            var petProfile = await _petService.GetById((int)id);
+            var petProfileView = petProfile.ToContract();
+            var owner = _userService.FindById(petProfile.OwnerId);
+            petProfileView.Owner = new UserShortInfoContract
+            {
+                Id = owner.Result.Id,
+                UserName = owner.Result.UserName,
+                PicUrl = owner.Result.PicUrl
+            };
+            petProfileView.Posts = petProfile.Posts.Select(x => new PostShortContract
+            {
+                Id = x.Id,
+                Text = x.Text,
+                Img = x.Img,
+                Date = x.Date,
+                LikeCount = x.LikeCount
+            }).ToList();
+            return Ok(petProfileView);
         }
-
-        [Authorize]
-        public IActionResult Create() => Ok(new List<Contracts.Genders> { Contracts.Genders.Male, Contracts.Genders.Female, Contracts.Genders.Hermaphrodite });
 
         [HttpPost]
-        [Authorize]
+        [Route("create")]
         public async Task<IActionResult> Create(PetProfileCreateContract pet)
         {
-            if (ModelState.IsValid)
+            return Ok(await _petService.Create(new PetProfileDto
             {
-                var petDto = new PetProfileDto
-                {
-                    OwnerId = (await _userService.GetCurrentUserAsync(User)).Id,
-                    Breed = pet.Breed,
-                    DateOfBirth = pet.DateOfBirth,
-                    Gender = (Domain.Models.Genders)pet.Gender,
-                    Img = pet.Img,
-                    Type = pet.Type,
-                    Name = pet.Name,
-                    Location = pet.Location,
-                    IsSale = pet.IsSale,
-                    IsShare = pet.IsShare,
-                    IsReadyForSex = pet.IsReadyForSex
-                };
-                int id = await _petService.Create(petDto);
-                return RedirectToAction("GetById", "PetProfiles", $"{id}");
-            }
-            return Ok(pet);
+                OwnerId = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value,
+                Breed = pet.Breed,
+                DateOfBirth = pet.DateOfBirth,
+                Gender = pet.Gender,
+                Img = pet.Img,
+                Type = pet.Type,
+                Name = pet.Name,
+                Location = pet.Location,
+                IsSale = pet.IsSale,
+                IsShare = pet.IsShare,
+                IsReadyForSex = pet.IsReadyForSex
+            }));
         }
 
-        [Authorize]
-        public async Task<IActionResult> EditPetProfile(int id)
+        [Route("edit")]
+        public async Task<IActionResult> EditPetProfile(int? id)
         {
-            var pet = await _petService.GetById(id);
-            if (pet != null && (await _userService.GetCurrentUserAsync(User)).Id == pet.OwnerId)
-                return Ok(new PetProfileEditContract
-                {
-                    Breed = pet.Breed,
-                    DateOfBirth = pet.DateOfBirth,
-                    Gender = (Contracts.Genders)pet.Gender,
-                    Img = pet.Img,
-                    IsReadyForSex = pet.IsReadyForSex,
-                    IsSale = pet.IsSale,
-                    IsShare = pet.IsShare,
-                    Location = pet.Location,
-                    Name = pet.Name,
-                    Type = pet.Type,
-                    Id = pet.Id
-                });
-            return BadRequest();
+            if (id == null)
+                return BadRequest();
+            var pet = await _petService.GetById((int)id);
+            if (pet == null || User.Claims.FirstOrDefault(x => x.Type == "UserID").Value != pet.OwnerId)
+                return BadRequest();
+            return Ok(new PetProfileEditContract
+            {
+                Breed = pet.Breed,
+                DateOfBirth = pet.DateOfBirth,
+                Gender = pet.Gender,
+                Img = pet.Img,
+                IsReadyForSex = pet.IsReadyForSex,
+                IsSale = pet.IsSale,
+                IsShare = pet.IsShare,
+                Location = pet.Location,
+                Name = pet.Name,
+                Type = pet.Type,
+                Id = pet.Id
+            });
         }
 
         [HttpPut]
+        [Route("edit")]
         public async Task<IActionResult> EditPetProfile(PetProfileEditContract model)
         {
-            if (ModelState.IsValid)
-            {
-                var pet = await _petService.GetById(model.Id);
-                if (pet != null && (await _userService.GetCurrentUserAsync(User)).Id == pet.OwnerId)
-                {
-                    pet.Breed = model.Breed;
-                    pet.DateOfBirth = model.DateOfBirth;
-                    pet.Gender = (Domain.Models.Genders)model.Gender;
-                    pet.Img = model.Img;
-                    pet.IsReadyForSex = model.IsReadyForSex;
-                    pet.IsSale = model.IsSale;
-                    pet.IsShare = model.IsShare;
-                    pet.Location = model.Location;
-                    pet.Name = model.Name;
-                    await _petService.Update(pet);
-                    return RedirectToAction("GetById", "PetProfiles", $"{pet.Id}");
-                }
-            }
-            return Ok(model);
+            var pet = await _petService.GetById(model.Id);
+            if (pet == null || User.Claims.FirstOrDefault(x => x.Type == "UserID").Value != pet.OwnerId)
+                return BadRequest();
+            pet.Breed = model.Breed;
+            pet.DateOfBirth = model.DateOfBirth;
+            pet.Gender = model.Gender;
+            pet.Img = model.Img;
+            pet.IsReadyForSex = model.IsReadyForSex;
+            pet.IsSale = model.IsSale;
+            pet.IsShare = model.IsShare;
+            pet.Location = model.Location;
+            pet.Name = model.Name;
+            await _petService.Update(pet);
+            return Ok(pet.Id);
         }
 
-        [Route("{id}")]
+        [Route("delete")]
         [HttpDelete]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int? id)
         {
-            var pet = await _petService.GetById(id);
-            if (pet == null || (await _userService.GetCurrentUserAsync(User)).Id != pet.OwnerId)
+            if (id == null)
                 return BadRequest();
-            await _petService.Delete(id);
+            var pet = await _petService.GetById((int)id);
+            if (pet == null || User.Claims.FirstOrDefault(x => x.Type == "UserID").Value != pet.OwnerId)
+                return BadRequest();
+            await _petService.Delete((int)id);
             return RedirectToAction("Index", "Home");
         }
     }

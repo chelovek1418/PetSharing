@@ -41,7 +41,7 @@ namespace PetSharing.API.Controllers
                     List<PetProfileMidInfoContract> pets = new List<PetProfileMidInfoContract>();
                     pets.AddRange(petProfiles.Where(x => x.Name.Contains(name)).Select(y=>new PetProfileMidInfoContract { Id = y.Id,
                     Breed = y.Breed,
-                    Gender = (Contracts.Genders)y.Gender,
+                    Gender = y.Gender,
                     Img=y.Img,
                     IsReadyForSex=y.IsReadyForSex,
                     IsSale=y.IsSale,

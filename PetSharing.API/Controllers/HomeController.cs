@@ -29,9 +29,7 @@ namespace PetSharing.API.Controllers
 
         public async Task<IActionResult> Index(int page = 1)
         {
-            var id = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value;
-            //var user = await _userManager.GetCurrentUserAsync(User);
-            var user = await _userManager.FindById(id);
+            var user = await _userManager.GetCurrentUserAsync(User);
             if (user == null)
                 return BadRequest("User not found");
             return Ok(new HomeContract
