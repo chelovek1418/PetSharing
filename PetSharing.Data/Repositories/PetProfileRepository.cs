@@ -23,17 +23,10 @@ namespace PetSharing.Data.Repositories
             return await db.Users.SelectMany(x => x.Subscriptions
             .Where(y => y.UserId == id))
             .Select(z => z.PetProfile)
-            //.Include(u=> u.Pet.Img)
             .Skip(skip)
             .Take(20)
             .ToListAsync();
         }
-
-        //public IEnumerable<PetProfile> GetByCondetion(string name, string gender="", string type="", string breed="", bool? isSale=null, bool? isShare = null, bool? isSex = null, string location="")
-        //{
-        //    db.PetProfiles.Select(x => x.Name.Contains(name)).ToList();
-
-        //}
 
         public async Task<IEnumerable<PetProfile>> GetAllAsync(int skip)
         {
@@ -42,7 +35,7 @@ namespace PetSharing.Data.Repositories
 
         public async Task<PetProfile> GetAsync(int id)
         {
-            return await db.PetProfiles.Include(p=>p.Posts).FirstOrDefaultAsync(x => x.Id == id);
+            return await db.PetProfiles.Include(p=>p.Posts).Include(f=>f.Folowers).FirstOrDefaultAsync(x => x.Id == id);
         }
 
         public async Task<int> CreateAsync(PetProfile pet)
@@ -54,7 +47,7 @@ namespace PetSharing.Data.Repositories
 
         public async Task UpdateAsync(PetProfile pet)
         {
-            db.Entry(pet).State = EntityState.Modified;
+            db.PetProfiles.Update(pet);
             await db.SaveChangesAsync();
         }
 
@@ -64,8 +57,6 @@ namespace PetSharing.Data.Repositories
             profile.Posts.ForEach(x => { x.Comments.ForEach(c => db.Comments.Remove(c)); db.Posts.Remove(x); });
             profile.Folowers.ForEach(x => profile.Folowers.Remove(x));
             db.PetProfiles.Remove(profile);
-            //db.PetProfiles.Remove(await db.PetProfiles.FirstOrDefaultAsync(x => x.Id == id));
-            //db.PetProfiles.FirstOrDefault(x => x.Id == id).Posts.ForEach(post => { db.Posts.Remove(post); post.Comments.ForEach(c => db.Comments.Remove(c)); });
             await db.SaveChangesAsync();
         }
     }

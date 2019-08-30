@@ -38,10 +38,10 @@ namespace PetSharing.API.Controllers
                 {
                     //Id = user.Id,
                     Email = user.Email,
-                Phone = user.Phone,
-                FullName = user.FullName,
-                PicUrl = user.PicUrl,
-                UserName = user.UserName
+                    Phone = user.Phone,
+                    FullName = user.FullName,
+                    PicUrl = user.PicUrl,
+                    UserName = user.UserName
                 },
                 Pets = (await _userManager.GetPetProfiles(user.Id)).Select(x => new PetProfileShortInfoContract { Id = x.Id, Name = x.Name, PicUrl = x.Img }).ToList(),
                 Posts = (await _postService.GetBySub((page - 1) * 20, user.Id)).Select(x => x.ToContract()).ToList()

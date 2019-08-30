@@ -24,7 +24,6 @@ namespace PetSharing.Data.Repositories
             .Where(y => y.UserId == id))
             .SelectMany(z=>z.PetProfile.Posts)
             .OrderByDescending(i=>i.Date)
-            //.Include(u=> u.Pet.Img)
             .Skip(skip)
             .Take(20)
             .ToListAsync();
@@ -37,7 +36,7 @@ namespace PetSharing.Data.Repositories
 
         public async Task<Post> GetAsync(int id)
         {
-            return await db.Posts.Include(p => p.Comments).ThenInclude(y=>y.Select(i=> i.User)).FirstOrDefaultAsync(x => x.Id == id);
+            return await db.Posts.Include(p => p.Comments).ThenInclude(y => y.User).Include(p=>p.Pet).FirstOrDefaultAsync(x => x.Id == id);
         }
 
         public async Task<int> CreateAsync(Post post)

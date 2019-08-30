@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PetSharing.Contracts.PetProfilesContract;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -11,5 +12,11 @@ namespace PetSharing.Contracts.PostContracts
         public string Text { get; set; }
         public DateTime? Date { get; set; }
         public int LikeCount { get; set; }
+        public PetProfileShortInfoContract Pet { get; set; }
+
+        public PostShortContract()
+        {
+            Pet = new PetProfileShortInfoContract();
+        }
     }
 }

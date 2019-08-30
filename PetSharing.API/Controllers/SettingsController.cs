@@ -24,6 +24,7 @@ namespace PetSharing.API.Controllers
             _userManager = userService;
         }
 
+        [Route("edit")]
         public async Task<IActionResult> Edit()
         {
             var user = await _userManager.GetCurrentUserAsync(User);
@@ -41,30 +42,35 @@ namespace PetSharing.API.Controllers
         }
 
         [HttpPut]
+        [Route("edit")]
         public async Task<IActionResult> Edit(EditUserContract model)
         {
+            if (model == null || model.Id != User.Claims.FirstOrDefault(x => x.Type == "UserID").Value)
+                return BadRequest();
             await _userManager.Update(new UserDto { Email = model.Email, FullName = model.FullName, Id = model.Id, Phone = model.Phone, PicUrl = model.PicUrl, UserName = model.UserName, Role = "user" });
             return RedirectToAction("Index", "Home");
         }
 
         [HttpDelete]
+        [Route("delete")]
         public async Task<IActionResult> Delete(DeleteContract model)
         {
-            if (!(await _userManager.Delete(new UserDto { Email = model.Email, Password = model.Password })).Succeeded)
+            if (!(await _userManager.Delete(new UserDto { Id = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value, Email = model.Email, Password = model.Password })).Succeeded)
                 return BadRequest("Password or Email is wrong");
             return RedirectToAction("Index", "Home");
         }
 
+        [Route("editpsw")]
         public async Task<IActionResult> ChangePassword()
         {
             var user = await _userManager.GetCurrentUserAsync(User);
             if (user == null)
                 return BadRequest();
-            var model = new ChangePasswordContract { Id = user.Id, Email = user.Email };
-            return Ok(model);
+            return Ok(new ChangePasswordContract { Id = user.Id, Email = user.Email });
         }
 
         [HttpPut]
+        [Route("editpsw")]
         public async Task<IActionResult> ChangePassword(ChangePasswordContract model)
         {
             if ((await _userManager.ChangePsw(new UserDto { Id = model.Id, Email = model.Email, Password = model.OldPassword }, model.NewPassword)).Succeeded)

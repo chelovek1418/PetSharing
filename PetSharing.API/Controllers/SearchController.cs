@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PetSharing.Contracts;
@@ -14,6 +15,7 @@ namespace PetSharing.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class SearchController : ControllerBase
     {
         private IUserService _userService;
@@ -25,13 +27,7 @@ namespace PetSharing.API.Controllers
             _userService = userService;
         }
 
-
-        public IActionResult Index()
-        {
-            return Ok(new List<string> { "Male", "Female", "Hermaphrodite" });
-        }
-
-        public async Task<IActionResult> Search(string name, SearchContract contract, int page=1)
+        public async Task<IActionResult> Index(string name, SearchContract contract, int page=1)
         {
             if (!string.IsNullOrEmpty(name))
             {

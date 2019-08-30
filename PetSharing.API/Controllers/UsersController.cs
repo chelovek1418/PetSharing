@@ -40,10 +40,11 @@ namespace PetSharingAPI.Controllers
 
         [Route("roles")]
         public IActionResult Roles() => Ok(_userManager.GetRoles().Select(x => x.ToContract()).ToList());
-        [Route("usercreate")]
+
+        [Route("create")]
         public IActionResult CreateUser() => Ok(_userManager.GetRoles().Select(x => x.ToContract()).ToList());
 
-        [Route("usercreate")]
+        [Route("create")]
         [HttpPost]
         public async Task<IActionResult> CreateUser(CreateUserContract model)
         {
@@ -52,7 +53,7 @@ namespace PetSharingAPI.Controllers
         }
 
         [HttpDelete]
-        [Route("userdelete")]
+        [Route("delete")]
         public async Task<ActionResult> DeleteUser(string id)
         {
             if (string.IsNullOrEmpty(id))
@@ -67,7 +68,7 @@ namespace PetSharingAPI.Controllers
             return Ok((await _userManager.GetUsersInRole(name)).Select(x => x.ToContract()).ToList());
         }
 
-        [Route("useredit")]
+        [Route("edit")]
         public async Task<IActionResult> Edit(string Id)
         {
             if (string.IsNullOrEmpty(Id))
@@ -91,7 +92,7 @@ namespace PetSharingAPI.Controllers
         }
 
         [HttpPut]
-        [Route("useredit")]
+        [Route("edit")]
         public async Task<IActionResult> Edit(ChangeRoleContract model)
         {
             var user = await _userManager.FindById(model.Id);

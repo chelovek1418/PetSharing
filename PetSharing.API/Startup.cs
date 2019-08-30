@@ -45,18 +45,21 @@ namespace PetSharingAPI
             services.AddSession();
             services.AddCors();
             //services.AddTransient<IUserIdProvider, CustomUserIdProvider>();
-            services.AddTransient<IMessageService, MessageService>();
-            services.AddTransient<ICommentService, CommentService>();
-            services.AddTransient<IUserService, UserService>();
-            services.AddTransient<IUnitOfWork, EFUnitOfWork>();
-            services.AddTransient<IService<PetProfileDto>, PetProfileService>();
-            services.AddTransient<IService<PostDto>, PostService>();
+            services.AddScoped<IMessageService, MessageService>();
+            services.AddScoped<ICommentService, CommentService>();
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IUnitOfWork, EFUnitOfWork>();
+            services.AddScoped<IService<PetProfileDto>, PetProfileService>();
+            services.AddScoped<IService<PostDto>, PostService>();
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 
             var cnct = Configuration.GetConnectionString("PetSharingDb");
 
             services.AddDbContext<PetSharingDbContext>(options =>
-                options.UseSqlServer(cnct, b => b.MigrationsAssembly("PetSharing.Data")));
+            {
+                options.UseSqlServer(cnct, b => b.MigrationsAssembly("PetSharing.Data"));
+                options.EnableSensitiveDataLogging();
+            });
 
             services.AddIdentity<User, IdentityRole>(
                 opts =>
@@ -80,7 +83,7 @@ namespace PetSharingAPI
             {
                 x.RequireHttpsMetadata = false;
                 x.SaveToken = false;
-                x.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                x.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
