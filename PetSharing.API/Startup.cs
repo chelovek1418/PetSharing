@@ -56,7 +56,10 @@ namespace PetSharingAPI
             var cnct = Configuration.GetConnectionString("PetSharingDb");
 
             services.AddDbContext<PetSharingDbContext>(options =>
-                options.UseSqlServer(cnct, b => b.MigrationsAssembly("PetSharing.Data")));
+            {
+                options.UseSqlServer(cnct, b => b.MigrationsAssembly("PetSharing.Data"));
+                options.EnableSensitiveDataLogging();
+            });
 
             services.AddIdentity<User, IdentityRole>(
                 opts =>
@@ -80,7 +83,7 @@ namespace PetSharingAPI
             {
                 x.RequireHttpsMetadata = false;
                 x.SaveToken = false;
-                x.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                x.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),

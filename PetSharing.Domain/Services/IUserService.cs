@@ -90,8 +90,6 @@ namespace PetSharing.Domain.Services
         public async Task<UserDto> GetCurrentUserAsync(ClaimsPrincipal claims)
         {
             return (await Db.UserManager.FindByIdAsync(claims.Claims.FirstOrDefault(x => x.Type == "UserID").Value)).ToDto();
-            //var user = await Db.UserManager.GetUserAsync(claims);
-            //return user.ToDto();
         }
 
         public async Task<string> Update(UserDto dto)
@@ -122,7 +120,7 @@ namespace PetSharing.Domain.Services
 
         public async Task<IdentityResult> Delete(UserDto dto)
         {
-            var user = await Db.UserManager.FindByEmailAsync(dto.Email);
+            var user = await Db.UserManager.FindByIdAsync(dto.Id);
             if (user == null)
                 throw new ValidationException("Пользователь не найден", "Id");
             if (Db.UserManager.PasswordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password) == PasswordVerificationResult.Failed)
@@ -292,21 +290,19 @@ namespace PetSharing.Domain.Services
 
         public async Task Subscribe(string userId, int petId)
         {
-            var user = await Db.UserManager.FindByIdAsync(userId);
-            if (user == null)
-                throw new ValidationException("Пользователь не найден", "Id");
-            user.Subscriptions.Add(new Subscription { PetId = petId, UserId = user.Id });
+            var pet = await Db.PetProfiles.GetAsync(petId);
+            if (pet == null || pet.Folowers.FirstOrDefault(x=>x.UserId==userId)!=null)
+                throw new ValidationException("Профиль не найден", "Id");            
+            pet.Folowers.Add(new Subscription { PetId = petId, UserId = userId });
             Db.Save();
         }
 
         public async Task UnSubscribe(string userId, int petId)
         {
-            var user = await Db.UserManager.Users.Include(s => s.Subscriptions).FirstOrDefaultAsync(x => x.Id == userId);
             var pet = await Db.PetProfiles.GetAsync(petId);
-            if (user == null || pet == null)
-                throw new ValidationException("Пользователь или профиль не найдены", "Id");
-            var subscription = user.Subscriptions.FirstOrDefault(sc => sc.PetId == pet.Id);
-            user.Subscriptions.Remove(subscription);
+            if (pet == null || pet.Folowers.FirstOrDefault(x => x.UserId == userId) == null)
+                throw new ValidationException("Профиль не найден", "Id");
+            pet.Folowers.Remove(pet.Folowers.FirstOrDefault(f => f.UserId == userId));
             Db.Save();
         }
 

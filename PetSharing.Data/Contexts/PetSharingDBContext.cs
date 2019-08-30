@@ -44,7 +44,7 @@ namespace PetSharing.Data.Contexts
             return base.SaveChanges();
         }
 
-        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             UpdateSoftDeleteStatuses();
             return base.SaveChangesAsync(cancellationToken);
@@ -54,7 +54,7 @@ namespace PetSharing.Data.Contexts
         {
             foreach (var entry in ChangeTracker.Entries())
             {
-                if (entry.State == EntityState.Deleted && entry.Entity.GetType()!=typeof(IdentityUserRole<string>))
+                if (entry.State == EntityState.Deleted & entry.Entity.GetType()!=typeof(IdentityUserRole<string>) & entry.Entity.GetType() != typeof(Subscription))
                 {
                     entry.State = EntityState.Modified;
                     entry.CurrentValues["IsDeleted"] = true;

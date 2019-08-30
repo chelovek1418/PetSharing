@@ -12,7 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace PetSharing.Domain.Services
-{ 
+{
     public class PetProfileService : IService<PetProfileDto>
     {
         private IUnitOfWork _unitOfWork { get; set; }
@@ -35,13 +35,11 @@ namespace PetSharing.Domain.Services
         public async Task<PetProfileDto> GetById(int id)
         {
             var profile = await _unitOfWork.PetProfiles.GetAsync(id);
-            if (profile != null)
-            {
-                var profileDto = profile.ToDto();
-                profileDto.Posts = profile.Posts.Select(x=>x.ToDto()).OrderByDescending(y=>y.Date).ToList();
-                return profileDto;
-            }
-            throw new ValidationException("Профиль не найден", "");
+            if (profile == null)
+                throw new ValidationException("Профиль не найден", "");
+            var profileDto = profile.ToDto();
+            profileDto.Posts = profile.Posts.Select(x => x.ToDto()).OrderByDescending(y => y.Date).ToList();
+            return profileDto;
         }
 
         public async Task<int> Create(PetProfileDto petDto)
@@ -51,7 +49,17 @@ namespace PetSharing.Domain.Services
 
         public async Task Update(PetProfileDto petDto)
         {
-            await _unitOfWork.PetProfiles.UpdateAsync(petDto.ToEntity());
+            var pet = await _unitOfWork.PetProfiles.GetAsync(petDto.Id);
+            pet.Breed = petDto.Breed;
+            pet.DateOfBirth = petDto.DateOfBirth;
+            pet.Gender = petDto.Gender == null ? null : (Genders?)Enum.Parse(typeof(Genders), petDto.Gender);
+            pet.Img = petDto.Img;
+            pet.IsReadyForSex = petDto.IsReadyForSex;
+            pet.IsSale = petDto.IsSale;
+            pet.IsShare = petDto.IsShare;
+            pet.Location = petDto.Location;
+            pet.Name = petDto.Name;
+            await _unitOfWork.PetProfiles.UpdateAsync(pet);
         }
 
         public async Task Delete(int id)

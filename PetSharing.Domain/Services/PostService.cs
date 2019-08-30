@@ -54,7 +54,10 @@ namespace PetSharing.Domain.Services
 
         public async Task Update(PostDto post)
         {
-            await _unitOfWork.Posts.UpdateAsync(post.ToEntity());
+            var entity = await _unitOfWork.Posts.GetAsync(post.Id);
+            entity.Text = post.Text;
+            entity.Img = post.Img;
+            await _unitOfWork.Posts.UpdateAsync(entity);
         }
 
         public async Task Delete(int id)

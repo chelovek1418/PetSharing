@@ -21,9 +21,6 @@ namespace PetSharing.Data.UnitOfWorks
     public class EFUnitOfWork : IUnitOfWork
     {
         PetSharingDbContext db;
-        UserManager<User> userManager;
-        RoleManager<IdentityRole> roleManager;
-        SignInManager<User> signInManager;
         PetProfileRepository petProfileRepository;
         PostRepository postRepository;
         CommentRepository commentRepository;
@@ -32,25 +29,16 @@ namespace PetSharing.Data.UnitOfWorks
         public EFUnitOfWork(DbContextOptions<PetSharingDbContext> options, UserManager<User> user, RoleManager<IdentityRole> role, SignInManager<User> signIn)
         {
             db = new PetSharingDbContext(options);
-            userManager = user;
-            roleManager = role;
-            signInManager = signIn;
+            UserManager = user;
+            RoleManager = role;
+            SignInManager = signIn;
         }
 
-        public UserManager<User> UserManager
-        {
-            get { return userManager; }
-        }
+        public UserManager<User> UserManager { get; }
 
-        public RoleManager<IdentityRole> RoleManager
-        {
-            get { return roleManager; }
-        }
+        public RoleManager<IdentityRole> RoleManager { get; }
 
-        public SignInManager<User> SignInManager
-        {
-            get { return signInManager; }
-        }
+        public SignInManager<User> SignInManager { get; }
 
         public ICommentRepository Comments
         {
@@ -105,8 +93,8 @@ namespace PetSharing.Data.UnitOfWorks
             {
                 if (disposing)
                 {
-                    userManager.Dispose();
-                    roleManager.Dispose();
+                    UserManager.Dispose();
+                    RoleManager.Dispose();
                     db.Dispose();
                 }
                 disposed = true;

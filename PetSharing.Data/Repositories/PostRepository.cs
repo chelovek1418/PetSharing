@@ -24,7 +24,6 @@ namespace PetSharing.Data.Repositories
             .Where(y => y.UserId == id))
             .SelectMany(z=>z.PetProfile.Posts)
             .OrderByDescending(i=>i.Date)
-            //.Include(u=> u.Pet.Img)
             .Skip(skip)
             .Take(20)
             .ToListAsync();
