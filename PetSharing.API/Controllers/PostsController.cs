@@ -62,9 +62,12 @@ namespace PetSharing.API.Controllers
         }
 
         [Route("create")]
-        public IActionResult Create(int? id)
+        public async Task<IActionResult> Create(int? id)
         {
             if (id == null)
+                return BadRequest();
+            var pet = await _petService.GetById((int)id);
+            if (pet == null || pet.OwnerId!= User.Claims.FirstOrDefault(x => x.Type == "UserID").Value)
                 return BadRequest();
             return Ok(new CreatePostContract { PetId = (int)id });
         }
@@ -73,7 +76,10 @@ namespace PetSharing.API.Controllers
         [Route("create")]
         public async Task<IActionResult> Create(CreatePostContract post)
         {
-            return RedirectToAction("GetById", "PetProfiles", $"{await _postService.Create(new PostDto { Date = DateTime.Now, Img = post.Img, PetId = post.PetId, Text = post.Text })}");
+            var pet = await _petService.GetById(post.PetId);
+            if (pet == null || pet.OwnerId != User.Claims.FirstOrDefault(x => x.Type == "UserID").Value)
+                return BadRequest();
+            return Ok(await _postService.Create(new PostDto { Date = DateTime.Now, Img = post.Img, PetId = post.PetId, Text = post.Text }));
         }
 
         [Route("edit")]
@@ -97,7 +103,7 @@ namespace PetSharing.API.Controllers
             post.Img = model.Img;
             post.Text = model.Text;
             await _postService.Update(post);
-            return RedirectToAction("GetById", "PetProfiles", $"{post.PetId}");
+            return Ok(post.PetId);
         }
 
         [HttpDelete]
@@ -110,14 +116,16 @@ namespace PetSharing.API.Controllers
             if (post == null || (await _petService.GetById(post.PetId)).OwnerId != User.Claims.FirstOrDefault(x => x.Type == "UserID").Value)
                 return BadRequest();
             await _postService.Delete((int)id);
-            return RedirectToAction("GetById", "PetProfiles", $"{post.PetId}");
+            return Ok(post.PetId);
         }
 
         //Comments
         [Route("createcmnt")]
-        public IActionResult CreateComment(int? id)
+        public async Task<IActionResult> CreateComment(int? id)
         {
             if (id == null)
+                return BadRequest();
+            if ((await _postService.GetById((int)id)) == null)
                 return BadRequest();
             return Ok(new CreateCommentContract { PostId = (int)id });
         }
@@ -126,6 +134,8 @@ namespace PetSharing.API.Controllers
         [Route("createcmnt")]
         public async Task<IActionResult> CreateComment(CreateCommentContract comment)
         {
+            if ((await _postService.GetById(comment.PostId)) == null)
+                return BadRequest();
             await _commentService.CreateAsync(new CommentDto
             {
                 Date = DateTime.Now,
@@ -147,7 +157,7 @@ namespace PetSharing.API.Controllers
                 (await _petService.GetById((await _postService.GetById(cmnt.PostId)).PetId)).OwnerId != User.Claims.FirstOrDefault(x => x.Type == "UserID").Value)
                 return BadRequest();
             await _commentService.DeleteAsync((int)id);
-            return RedirectToAction("GetById", "Posts", $"{cmnt.PostId}");
+            return Ok(cmnt.PostId);
         }
     }
 }

@@ -36,7 +36,7 @@ namespace PetSharing.Data.Repositories
 
         public async Task<Post> GetAsync(int id)
         {
-            return await db.Posts.Include(p => p.Comments).ThenInclude(y=>y.Select(i=> i.User)).FirstOrDefaultAsync(x => x.Id == id);
+            return await db.Posts.Include(p => p.Comments).ThenInclude(y => y.User).Include(p=>p.Pet).FirstOrDefaultAsync(x => x.Id == id);
         }
 
         public async Task<int> CreateAsync(Post post)

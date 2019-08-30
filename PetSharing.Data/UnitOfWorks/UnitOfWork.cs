@@ -7,7 +7,7 @@ using System;
 
 namespace PetSharing.Data.UnitOfWorks
 {
-    public interface IUnitOfWork : IDisposable
+    public interface IUnitOfWork
     {
         UserManager<User> UserManager { get; }
         RoleManager<IdentityRole> RoleManager { get; }
@@ -83,28 +83,6 @@ namespace PetSharing.Data.UnitOfWorks
         public async void Save()
         {
             await db.SaveChangesAsync();
-        }
-
-        private bool disposed = false;
-
-        public virtual void Dispose(bool disposing)
-        {
-            if (!disposed)
-            {
-                if (disposing)
-                {
-                    UserManager.Dispose();
-                    RoleManager.Dispose();
-                    db.Dispose();
-                }
-                disposed = true;
-            }
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
         }
     }
 }

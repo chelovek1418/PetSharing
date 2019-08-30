@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace PetSharing.Domain.Services
 {
-    public interface IUserService : IDisposable
+    public interface IUserService
     {
         Task<IEnumerable<ChatDto>> GetChats(ClaimsPrincipal claims);
         IEnumerable<UserDto> FindUsers(string param);
@@ -304,11 +304,6 @@ namespace PetSharing.Domain.Services
                 throw new ValidationException("Профиль не найден", "Id");
             pet.Folowers.Remove(pet.Folowers.FirstOrDefault(f => f.UserId == userId));
             Db.Save();
-        }
-
-        public void Dispose()
-        {
-            Db.Dispose();
         }
     }
 }
