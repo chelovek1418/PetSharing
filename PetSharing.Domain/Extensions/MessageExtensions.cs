@@ -14,6 +14,7 @@ namespace PetSharing.Domain.Extensions
                 return null;
             return new Message()
             {
+                UserId=dto.UserId,
                 Id = dto.Id,
                 ReceiverId = dto.ReceiverId,
                 Date = dto.Date,
@@ -26,6 +27,7 @@ namespace PetSharing.Domain.Extensions
                 return null;
             return new MessageDto()
             {
+                UserId = entity.UserId,
                 Id = entity.Id,
                 Date = entity.Date,
                 Text = entity.Text,

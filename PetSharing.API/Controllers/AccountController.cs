@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using PetSharing.Contracts;
-using PetSharing.Data.Entities;
-using PetSharing.Domain.Infrastructure;
 using PetSharing.Domain.Models;
 using PetSharing.Domain.Services;
 
@@ -43,24 +39,20 @@ namespace PetSharing.API.Controllers
             var token = await _userService.GenerateToken(id);
             if (string.IsNullOrEmpty(token))
                 return BadRequest();
-            var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = id, code = token }, protocol: HttpContext.Request.Scheme);
+            //var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = id, code = token }, protocol: HttpContext.Request.Scheme);
+            var callbackUrl = QueryHelpers.AddQueryString("http://localhost:4200/confirmemail", new Dictionary<string, string>() { { "userId", id }, { "code", token } });
             EmailService emailService = new EmailService();
-            await emailService.SendEmailAsync(model.Email, "Confirm your account",
-                $"Подтвердите регистрацию на \"PetSharing\", перейдя по ссылке: <a href='{callbackUrl}'>link</a>");
+            await emailService.SendEmailAsync(model.Email, "Confirm your account", $"Подтвердите регистрацию на \"PetSharing\", перейдя по ссылке: <a href='{callbackUrl}'>link</a>");
             return Ok();
         }
 
-        [HttpGet("confirmemail")]
+        [Route("confirmemail")]
         [AllowAnonymous]
         public async Task<IActionResult> ConfirmEmail(string userId, string code)
         {
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(code))
                 return BadRequest("Error");
-            var result = await _userService.ConfirnEmail(userId, code);
-            if (result.Succeeded)
-                return Ok();
-            else
-                return BadRequest("Error");
+            return Ok(await _userService.ConfirmEmail(userId, code));
         }
 
         [HttpPost("login")]
