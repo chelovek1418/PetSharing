@@ -17,7 +17,7 @@ namespace PetSharing.API.Controllers
     [Authorize]
     public class SettingsController : ControllerBase
     {
-        IUserService _userManager;
+        readonly IUserService _userManager;
 
         public SettingsController(IUserService userService)
         {

@@ -12,7 +12,7 @@ namespace PetSharing.API.SignalR
 
     public class CustomUserIdProvider : IUserIdProvider
     {
-        private IUserService _userService;
+        readonly IUserService _userService;
 
         public CustomUserIdProvider(IUserService userService)
         {

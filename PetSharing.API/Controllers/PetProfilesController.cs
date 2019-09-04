@@ -21,8 +21,8 @@ namespace PetSharing.API.Controllers
     [Authorize]
     public class PetProfilesController : ControllerBase
     {
-        private IService<PetProfileDto> _petService;
-        private IUserService _userService;
+        readonly IService<PetProfileDto> _petService;
+        readonly IUserService _userService;
 
         public PetProfilesController(IService<PetProfileDto> petService, IUserService userService)
         {

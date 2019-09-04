@@ -19,7 +19,7 @@ namespace PetSharing.Domain.Services
 {
     public interface IUserService
     {
-        Task<IEnumerable<ChatDto>> GetChats(ClaimsPrincipal claims);
+        Task<IEnumerable<ChatDto>> GetChats(string id);
         IEnumerable<UserDto> FindUsers(string param);
         IEnumerable<RoleDto> GetRoles();
         Task<IEnumerable<UserDto>> GetUsersInRole(string name);
@@ -31,7 +31,7 @@ namespace PetSharing.Domain.Services
         Task<string> GenerateToken(string id);
         Task<string> GeneratePswToken(string param);
         Task<string> Authenticate(UserDto userDto, bool rememberMe);
-        Task<IdentityResult> ConfirnEmail(string id, string code);
+        Task<IdentityResult> ConfirmEmail(string id, string code);
         Task<IdentityResult> ResetPsw(UserDto user, string code);
         void LogOff();
         Task<UserDto> FindById(string id);
@@ -58,9 +58,8 @@ namespace PetSharing.Domain.Services
             return (await Db.UserManager.GetUsersInRoleAsync(name)).Select(x => x.ToDto());
         }
 
-        public async Task<IEnumerable<ChatDto>> GetChats(ClaimsPrincipal claims)
+        public async Task<IEnumerable<ChatDto>> GetChats(string id)
         {
-            var id = (await Db.UserManager.GetUserAsync(claims)).Id;
             var messages = (await Db.UserManager.Users.Include(x => x.Messages).FirstOrDefaultAsync(d => d.Id == id)).Messages.OrderByDescending(m => m.Date);
             List<ChatDto> Chats = new List<ChatDto>();
             foreach (var mes in messages)
@@ -160,12 +159,12 @@ namespace PetSharing.Domain.Services
             return res;
         }
 
-        public async Task<IdentityResult> ConfirnEmail(string id, string code)
+        public async Task<IdentityResult> ConfirmEmail(string id, string code)
         {
             var user = await Db.UserManager.FindByIdAsync(id);
             if (user == null)
                 throw new ValidationException("Пользователь не найден", "Id");
-            return await Db.UserManager.ConfirmEmailAsync(user, code);
+            return await Db.UserManager.ConfirmEmailAsync(user, code.Replace(" ", "+"));
         }
 
         public async Task<IdentityResult> CreateByAdmin(UserDto userDto)

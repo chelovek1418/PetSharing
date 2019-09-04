@@ -20,7 +20,7 @@ namespace PetSharingAPI.Controllers
     [Authorize(Roles = "admin")]
     public class UsersController : ControllerBase
     {
-        IUserService _userManager;
+        readonly IUserService _userManager;
 
         public UsersController(IUserService userManager)
         {

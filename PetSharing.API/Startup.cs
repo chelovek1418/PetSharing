@@ -1,20 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http.Connections;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SpaServices.Webpack;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,17 +45,14 @@ namespace PetSharingAPI
 
             var cnct = Configuration.GetConnectionString("PetSharingDb");
 
-            services.AddDbContext<PetSharingDbContext>(options =>
-            {
-                options.UseSqlServer(cnct, b => b.MigrationsAssembly("PetSharing.Data"));
-                options.EnableSensitiveDataLogging();
-            });
+            services.AddDbContext<PetSharingDbContext>(options => options.UseSqlServer(cnct, b => b.MigrationsAssembly("PetSharing.Data")));
 
             services.AddIdentity<User, IdentityRole>(
                 opts =>
                 {
                     opts.Password.RequiredLength = 5;
                     opts.Password.RequireNonAlphanumeric = false;
+                    opts.Password.RequireUppercase = false;
                     opts.User.RequireUniqueEmail = true;
                 })
                 .AddEntityFrameworkStores<PetSharingDbContext>()
@@ -99,7 +86,7 @@ namespace PetSharingAPI
         {
             app.UseSession();
 
-            app.UseCors(builder => builder.AllowAnyOrigin()/*WithOrigins("http://localhost:8080")*/.AllowAnyMethod().AllowAnyHeader());
+            app.UseCors(builder => builder.WithOrigins(Configuration["ApplicationSettings:Client_URL"]).AllowAnyMethod().AllowAnyHeader());
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

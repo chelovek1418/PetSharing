@@ -19,7 +19,7 @@ namespace PetSharing.Data.Repositories
 
     public class MessageRepository : IMessageRepository
     {
-        private PetSharingDbContext db;
+        readonly PetSharingDbContext db;
 
         public MessageRepository(PetSharingDbContext context)
         {

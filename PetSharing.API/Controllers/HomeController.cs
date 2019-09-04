@@ -32,9 +32,11 @@ namespace PetSharing.API.Controllers
             var user = await _userManager.GetCurrentUserAsync(User);
             if (user == null)
                 return BadRequest("User not found");
-            return Ok(new HomeContract
-            {
-                User = new UserFullInfoContract
+            return Ok(
+            //    new HomeContract
+            //{
+            //    User = 
+                new UserFullInfoContract
                 {
                     //Id = user.Id,
                     Email = user.Email,
@@ -42,9 +44,9 @@ namespace PetSharing.API.Controllers
                     FullName = user.FullName,
                     PicUrl = user.PicUrl,
                     UserName = user.UserName
-                },
-                Pets = (await _userManager.GetPetProfiles(user.Id)).Select(x => new PetProfileShortInfoContract { Id = x.Id, Name = x.Name, PicUrl = x.Img }).ToList(),
-                Posts = (await _postService.GetBySub((page - 1) * 20, user.Id)).Select(x => x.ToContract()).ToList()
+                //},
+                //Pets = (await _userManager.GetPetProfiles(user.Id)).Select(x => new PetProfileShortInfoContract { Id = x.Id, Name = x.Name, PicUrl = x.Img }).ToList(),
+                //Posts = (await _postService.GetBySub((page - 1) * 20, user.Id)).Select(x => x.ToContract()).ToList()
             });
 
         }

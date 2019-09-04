@@ -19,9 +19,9 @@ namespace PetSharing.API.Controllers
     [Authorize]
     public class ChatController : ControllerBase
     {
-        private IUserService _userService;
-        private IMessageService _messageService;
-        IHubContext<ChatHub> _hubContext;
+        readonly IUserService _userService;
+        readonly IMessageService _messageService;
+        readonly IHubContext<ChatHub> _hubContext;
 
         public ChatController(IUserService userService, IMessageService messageService, IHubContext<ChatHub> hubContext)
         {
@@ -32,43 +32,49 @@ namespace PetSharing.API.Controllers
 
         public async Task<IActionResult> Index()
         {
-            return Ok((await _userService.GetChats(User)).Select(x => x.ToContract()).ToList());
+            return Ok((await _userService.GetChats(User.Claims.FirstOrDefault(x => x.Type == "UserID").Value)).Select(x => x.ToContract()).ToList());
         }
 
+        [Route("get")]
         public async Task<IActionResult> GetChat(string id)
         {
             if (string.IsNullOrEmpty(id))
-                return NotFound();
-            var user = await _userService.FindById(id);
-            var messages = (await _messageService.GetMessages((await _userService.GetCurrentUserAsync(User)).Id, id)).Select(x => x.ToContract()).ToList();
-            var chat = new ChatContract { Date = messages.FirstOrDefault().Date, Name = user.UserName, PicUrl = user.PicUrl, LastMessage = messages.FirstOrDefault().Text }.Messages = messages;
-            return Ok(chat);
+                return BadRequest();
+            var user = _userService.FindById(id);
+            var messages = (await _messageService.GetMessages(User.Claims.FirstOrDefault(x => x.Type == "UserID").Value, id)).Select(x => x.ToContract()).ToList();
+            return Ok(new ChatContract { Date = messages.FirstOrDefault().Date, Name = user.Result.UserName, PicUrl = user.Result.PicUrl, LastMessage = messages.FirstOrDefault().Text }.Messages = messages);
         }
 
+        [Route("delete")]
+        [HttpDelete]
         public async Task<IActionResult> DeleteChat(string id)
         {
             if (string.IsNullOrEmpty(id))
-                return NotFound();
-            await _messageService.DeleteChat((await _userService.GetCurrentUserAsync(User)).Id, id);
-            return RedirectToAction("Index");
+                return BadRequest();
+            await _messageService.DeleteChat(User.Claims.FirstOrDefault(x => x.Type == "UserID").Value, id);
+            return Ok();
         }
 
+        [Route("send")]
+        [HttpPost]
         public async Task<IActionResult> SendMessage(MessageContract message)
         {
-            var userId = (await _userService.GetCurrentUserAsync(User)).Id;
+            var userId = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value;
             if (userId != message.ReceiverId)
                 await _hubContext.Clients.User(userId).SendAsync("Receive", message);
             await _hubContext.Clients.User(message.ReceiverId).SendAsync("Receive", message);
-            await _messageService.Create(new MessageDto { Date = DateTime.Now, Text = message.Text, ReceiverId = message.ReceiverId });
-            return RedirectToAction();
+            await _messageService.Create(new MessageDto { Date = DateTime.Now, Text = message.Text, ReceiverId = message.ReceiverId, UserId = userId });
+            return Ok();
         }
 
+        [Route("deletemsg")]
+        [HttpDelete]
         public async Task<IActionResult> DeleteMessage(int? id)
         {
             if (id == null)
                 return BadRequest();
             await _messageService.Delete((int)id);
-            return RedirectToAction();
+            return Ok();
         }
     }
 }

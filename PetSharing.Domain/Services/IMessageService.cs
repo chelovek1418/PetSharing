@@ -21,31 +21,31 @@ namespace PetSharing.Domain.Services
 
     public class MessageService : IMessageService
     {
-        IUnitOfWork _unitOfWork { get; set; }
+        IUnitOfWork UnitOfWork { get; set; }
 
         public MessageService(IUnitOfWork uow)
         {
-            _unitOfWork = uow;
+            UnitOfWork = uow;
         }
 
         public async Task<IEnumerable<MessageDto>> GetMessages(string myId, string companionId)
         {
-            return (await _unitOfWork.Messages.GetMessages(myId, companionId)).Select(x => x.ToDto());
+            return (await UnitOfWork.Messages.GetMessages(myId, companionId)).Select(x => x.ToDto());
         }
 
         public async Task DeleteChat(string myId, string chatId)
         {
-            await _unitOfWork.Messages.DeleteChat(myId, chatId);
+            await UnitOfWork.Messages.DeleteChat(myId, chatId);
         }
 
         public async Task Create(MessageDto message)
         {
-            await _unitOfWork.Messages.Create(message.ToEntity());
+            await UnitOfWork.Messages.Create(message.ToEntity());
         }
 
         public async Task Delete(int id)
         {
-            await _unitOfWork.Messages.Delete(id);
+            await UnitOfWork.Messages.Delete(id);
         }
     }
 }
