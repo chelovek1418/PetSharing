@@ -38,7 +38,7 @@ namespace PetSharing.API.Controllers
             //    User = 
                 new UserFullInfoContract
                 {
-                    //Id = user.Id,
+                    Id = user.Id,
                     Email = user.Email,
                     Phone = user.Phone,
                     FullName = user.FullName,

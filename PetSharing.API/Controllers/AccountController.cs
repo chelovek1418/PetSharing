@@ -24,7 +24,7 @@ namespace PetSharing.API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterContract model)
         {
-            //await _userService.CreateRole("user");
+            await _userService.CreateRole("user");
             //await _userService.CreateRole("admin");
             var userDto = new UserDto
             {
@@ -43,7 +43,7 @@ namespace PetSharing.API.Controllers
             var callbackUrl = QueryHelpers.AddQueryString("http://localhost:4200/confirmemail", new Dictionary<string, string>() { { "userId", id }, { "code", token } });
             EmailService emailService = new EmailService();
             await emailService.SendEmailAsync(model.Email, "Confirm your account", $"Подтвердите регистрацию на \"PetSharing\", перейдя по ссылке: <a href='{callbackUrl}'>link</a>");
-            return Ok();
+            return Ok(true);
         }
 
         [Route("confirmemail")]

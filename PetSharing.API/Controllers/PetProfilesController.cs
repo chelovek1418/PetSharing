@@ -98,6 +98,7 @@ namespace PetSharing.API.Controllers
             var petProfile = await _petService.GetById((int)id);
             var petProfileView = petProfile.ToContract();
             var owner = _userService.FindById(petProfile.OwnerId);
+            bool isOwner = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value == petProfile.OwnerId;
             petProfileView.Owner = new UserShortInfoContract
             {
                 Id = owner.Result.Id,
@@ -112,7 +113,7 @@ namespace PetSharing.API.Controllers
                 Date = x.Date,
                 LikeCount = x.LikeCount
             }).ToList();
-            return Ok(petProfileView);
+            return Ok(new { petProfileView, isOwner });
         }
 
         [HttpPost]

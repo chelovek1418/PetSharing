@@ -20,7 +20,7 @@ namespace PetSharing.Domain.Extensions
                 AvgLikeCount = dto.AvgLikeCount,
                 Breed = dto.Breed,
                 DateOfBirth = dto.DateOfBirth,
-                Gender = dto.Gender==null ? null: (Genders?)Enum.Parse(typeof(Genders), dto.Gender),
+                Gender = string.IsNullOrEmpty(dto.Gender) ? null: (Genders?)Enum.Parse(typeof(Genders), dto.Gender),
                 Img = dto.Img,
                 IsReadyForSex = dto.IsReadyForSex,
                 IsSale = dto.IsSale,

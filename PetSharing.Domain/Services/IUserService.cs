@@ -19,6 +19,7 @@ namespace PetSharing.Domain.Services
 {
     public interface IUserService
     {
+        Task<IdentityResult> CreateRole(string name);
         Task<IEnumerable<ChatDto>> GetChats(string id);
         IEnumerable<UserDto> FindUsers(string param);
         IEnumerable<RoleDto> GetRoles();
@@ -56,6 +57,11 @@ namespace PetSharing.Domain.Services
         public async Task<IEnumerable<UserDto>> GetUsersInRole(string name)
         {
             return (await Db.UserManager.GetUsersInRoleAsync(name)).Select(x => x.ToDto());
+        }
+
+        public async Task<IdentityResult> CreateRole(string name)
+        {
+            return (await Db.RoleManager.CreateAsync(new IdentityRole(name)));
         }
 
         public async Task<IEnumerable<ChatDto>> GetChats(string id)
